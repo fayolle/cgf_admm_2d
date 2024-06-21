@@ -1,14 +1,18 @@
-function Idist = cgf_admm(I, niter, r, nupdate)
+function Idist = cgf_admm(I, niter, r, nupdate, use_normalization)
 % cgf_admm(I, niter, r, nupdate)
 % Compute an approximate distance to the boundary of the input image I by
 % minimizing \int (|p|-1)^2 with constraint p=\nabla u and u=0 on the
-% boundary by ADMM. 
+% boundary by ADMM.
 %
 % I: input (black and white) image
 % niter: number of iterations
 % r: relaxation parameter
-% nupdate: number of iterations until the next Poisson solve is triggered 
-% 
+% nupdate: number of iterations until the next Poisson solve is triggered
+%
+
+if nargin == 4
+    use_normalization = 1; % use Tucker's normalization by default
+end
 
 [row,col] = find(I > 0);
 v = (1:length(row))';
@@ -18,22 +22,13 @@ for i = 1:length(row)
     G(row(i),col(i)) = v(i);
 end
 
-% delsq(G) is the 5-point discrete (negative) Laplacian 
+% delsq(G) is the 5-point discrete (negative) Laplacian
 D = delsq(G);
 
 % init with Poisson dist
-U = Poisson_dist(I);
+U = Poisson_dist(I, use_normalization);
 
-% Tucker normalization 
 [gx, gy] = gradient(U);
-dU2 = gx.*gx + gy.*gy; 
-dU1 = sqrt(dU2);
-U_normalized = 2.0.*U ./ (dU1 + sqrt(dU2 + 2.0.*U));
-nan_idx = isnan(U_normalized);
-U_normalized(nan_idx) = 0.0;
-
-%[gx, gy] = gradient(U);
-[gx, gy] = gradient(U_normalized);
 
 lambdax = zeros(size(I));
 lambday = zeros(size(I));
@@ -96,7 +91,7 @@ Idist = real(U);
 end
 
 
-function Idist = Poisson_dist(I)
+function Idist = Poisson_dist(I, use_normalization)
 [row,col] = find(I > 0);
 v = (1:length(row))';
 G = zeros(size(I));
@@ -120,11 +115,14 @@ u = D\f;
 U = G;
 U(G>0) = full(u(G(G>0)));
 
-% Poisson-dist normalization
-[Ux, Uy]=gradient(U);
-dU = sqrt(Ux.^2 + Uy.^2);
-U_normalized = -dU + sqrt(2.*U + dU.^2);
-U = U_normalized;
+if (use_normalization)
+    fprintf("Using Tucker's normalization\n");
+    % Poisson-dist normalization
+    [Ux, Uy]=gradient(U);
+    dU = sqrt(Ux.^2 + Uy.^2);
+    U_normalized = -dU + sqrt(2.*U + dU.^2);
+    U = U_normalized;
+end
 
 Idist = real(U);
 end
