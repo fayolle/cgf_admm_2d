@@ -115,9 +115,8 @@ u = D\f;
 U = G;
 U(G>0) = full(u(G(G>0)));
 
+% Tucker's normalization
 if (use_normalization)
-    fprintf("Using Tucker's normalization\n");
-    % Poisson-dist normalization
     [Ux, Uy]=gradient(U);
     dU = sqrt(Ux.^2 + Uy.^2);
     U_normalized = -dU + sqrt(2.*U + dU.^2);
