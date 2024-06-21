@@ -23,7 +23,17 @@ D = delsq(G);
 
 % init with Poisson dist
 U = Poisson_dist(I);
+
+% Tucker normalization 
 [gx, gy] = gradient(U);
+dU2 = gx.*gx + gy.*gy; 
+dU1 = sqrt(dU2);
+U_normalized = 2.0.*U ./ (dU1 + sqrt(dU2 + 2.0.*U));
+nan_idx = isnan(U_normalized);
+U_normalized(nan_idx) = 0.0;
+
+%[gx, gy] = gradient(U);
+[gx, gy] = gradient(U_normalized);
 
 lambdax = zeros(size(I));
 lambday = zeros(size(I));
